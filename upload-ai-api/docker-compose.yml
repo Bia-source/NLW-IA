@@ -1,0 +1,12 @@
+version: '3.8'
+services:
+  production:
+    image: postgres
+    restart: always 
+    environment:
+      - POSTGRES_USER=uploadaiapi
+      - POSTGRES_PASSWORD=backendapiai
+    volumes:
+      - /var/lib/postgresql/data
+    ports:
+      - "5432:5432"
