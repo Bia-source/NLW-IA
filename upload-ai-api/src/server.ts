@@ -1,9 +1,11 @@
 import { fastify } from "fastify";
-import { getAllPrompts } from "./routes/getAllPrompts.routes";
+import { getAllPromptsRoute } from "./routes/getAllPrompts.routes";
+import { uploadVideoRoute } from "./routes/uploadVideo.routes";
 
 const app = fastify();
 
-app.register(getAllPrompts);
+app.register(getAllPromptsRoute);
+app.register(uploadVideoRoute);
 
 app.listen({
     port: 3333
