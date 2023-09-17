@@ -22,7 +22,11 @@ const statusMessage = {
     success: 'Sucesso!',
 }
 
-export function VideoInputForm() {
+type VideoInputFormProps = {
+    onVideoUploaded: (id: string) => void;
+}
+
+export function VideoInputForm({ onVideoUploaded }: VideoInputFormProps) {
     const [videoFile, setVideoFile] = useState<File | null>(null);
     const [status, setStatus] = useState<StatusType>('waiting');
     const promptInputRef = useRef<HTMLTextAreaElement>(null);
@@ -96,7 +100,7 @@ export function VideoInputForm() {
         });
 
         setStatus('success');
-        console.log('finalizou');
+        onVideoUploaded(id);
     }
 
     const previewUrl = useMemo(() => {
