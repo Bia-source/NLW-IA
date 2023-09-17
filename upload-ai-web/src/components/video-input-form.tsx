@@ -10,13 +10,21 @@ import { fetchFile } from "@ffmpeg/util";
 import { api } from "@/lib/axios";
 
 type VideoType = {
-  video: {
     id: string;
-  }
+}
+
+type StatusType = 'waiting' | 'converting' | 'uploading' | 'generating' | 'success'
+
+const statusMessage = {
+    converting: 'Convertendo...',
+    generating: 'Transcrevendo...',
+    uploading: 'Carregando...',
+    success: 'Sucesso!',
 }
 
 export function VideoInputForm() {
     const [videoFile, setVideoFile] = useState<File | null>(null);
+    const [status, setStatus] = useState<StatusType>('waiting');
     const promptInputRef = useRef<HTMLTextAreaElement>(null);
 
     function handleFileSelected(event: ChangeEvent<HTMLInputElement>) {
@@ -58,9 +66,8 @@ export function VideoInputForm() {
         const data = await ffmpeg.readFile('output.mp3');
 
         const audioFileBlob = new Blob([data], { type: 'audio/mpeg' });
-        const audioFile = new File([audioFileBlob], 'audio.mp3' , { type: 'audio/mpeg'});
+        const audioFile = new File([audioFileBlob], 'audio.mp3', { type: 'audio/mpeg' });
 
-        console.log('Convert finish')
         return audioFile;
     }
 
@@ -72,21 +79,24 @@ export function VideoInputForm() {
             return
         }
 
+        setStatus('converting');
         const audioFile = await convertVideoToAudio(videoFile);
 
         const data = new FormData();
 
         data.append('file', audioFile);
 
+        setStatus('uploading');
         const response = await api.post('/videos', data);
-        //const { id } = response.data as VideoType;
-        const { video } = response.data as VideoType;
-        
-        await api.post(`/videos/${video.id}/transcription`, {
+        const { id } = response.data.video as VideoType;
+
+        setStatus('generating')
+        await api.post(`/videos/${id}/transcription`, {
             prompt
         });
 
-        console.log('finalizou')
+        setStatus('success');
+        console.log('finalizou');
     }
 
     const previewUrl = useMemo(() => {
@@ -100,32 +110,43 @@ export function VideoInputForm() {
 
     return (
         <form onSubmit={handleUploadVideo} className="space-y-6">
-      <label
-        htmlFor="video"
-        className="relative border flex rounded-md aspect-video cursor-pointer border-dashed text-sm flex-col gap-2 items-center justify-center text-muted-foreground hover:bg-white/5"
-      >
-        {previewUrl ? (
-          <video src={previewUrl} controls={false} className="pointer-events-none absolute inset-0" />
-        ) : (
-          <>
-            <FileVideo className="w-4 h-4" />
-            Selecione um vídeo
-          </>
-        )}
-      </label>
+            <label
+                htmlFor="video"
+                className="relative border flex rounded-md aspect-video cursor-pointer border-dashed text-sm flex-col gap-2 items-center justify-center text-muted-foreground hover:bg-white/5"
+            >
+                {previewUrl ? (
+                    <video src={previewUrl} controls={false} className="pointer-events-none absolute inset-0" />
+                ) : (
+                    <>
+                        <FileVideo className="w-4 h-4" />
+                        Selecione um vídeo
+                    </>
+                )}
+            </label>
 
-      <input type="file" id="video" accept="video/mp4" className="sr-only" onChange={handleFileSelected} />
+            <input type="file" id="video" accept="video/mp4" className="sr-only" onChange={handleFileSelected} />
 
-      <Separator />
+            <Separator />
 
             <div className="space-y-2">
                 <Label htmlFor="transcription_prompt">Prompt de transcrição</Label>
-                <Textarea ref={promptInputRef} id="transcription_prompt" className="h-20 leading-relaxed resize-none" placeholder="Inclua palavras-chave mencionadas no vídeo separadas por virgula (,)" />
+                <Textarea disabled={status !== 'waiting'} ref={promptInputRef} id="transcription_prompt" className="h-20 leading-relaxed resize-none" placeholder="Inclua palavras-chave mencionadas no vídeo separadas por virgula (,)" />
             </div>
 
-            <Button type="submit" className="w-full">
-                Carregar vídeo
-                <Upload className="w-4 h-4 ml-2" />
+            <Button 
+             disabled={status !== 'waiting'} 
+             type="submit" 
+             className="w-full data-[success=true]: bg-green-500"
+             data-success={status === 'success'}
+             >
+                {status === 'waiting' ?
+                   <>
+                    Carregar vídeo
+                    <Upload className="w-4 h-4 ml-2" />    
+                   </>
+                   :
+                   statusMessage[status]
+            }
             </Button>
 
 
